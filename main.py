@@ -4,7 +4,6 @@ import enums_bdd
 def is_constant(rq: str):
     try:
         n = enums_bdd.Constants(rq).name
-        print(n)
         return True
     except Exception:
         return False
@@ -28,24 +27,31 @@ def check_parentheses(rq: str):
 
 
 def process_request(rq: str):
-    check_parentheses(rq)
-
     # Get the sub-query
     i = 0
     while rq[i] != '(':
         i += 1
-    j = i+1
+    query = rq[:i]
+    j = i
     par_c = 0
     while rq[j] != ')' or par_c != -1:
         j += 1
         if rq[j] == '(':
             par_c += 1
+            k = process_request(rq[i + 1:])
+            if k is not None:
+                j = k + len(query)
         elif rq[j] == ')':
             par_c -= 1
-    sub_rq = rq[i+1:j]
-    print(sub_rq)
 
-    pass
+    args = rq[i+1:j]
+    q = enums_bdd.Query(query, args.split(','))
+    if is_constant(query):
+        print(f"Constant found ! : {q.query} || {q.arg_list}")
+        return None
+    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q.query} || {q.arg_list}")
+
+    return j
 
 
 if __name__ == '__main__':
@@ -59,6 +65,7 @@ if __name__ == '__main__':
         if request == "exit":
             break
 
-        print(process_request(request))
+        check_parentheses(request)
+        process_request(request)
 
     print("Goodbye !")
