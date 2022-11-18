@@ -1,12 +1,15 @@
-import enums_bdd
+from enums_bdd import Constants, SPJRUDRequest
+from Operator.operator import Operator
 
 
-def is_constant(rq: str):
-    try:
-        n = enums_bdd.Constants(rq).name
-        return True
-    except Exception:
-        return False
+def is_constant(rq: str) -> bool:
+    """
+    Check if the query "rq" is a constant or not.
+
+    :param rq: The query
+    :return: True if the query is a constant, False if not
+    """
+    return Constants.has_value(rq)
 
 
 def get_request_content(rq: str):
@@ -14,26 +17,86 @@ def get_request_content(rq: str):
     pass
 
 
-def check_parentheses(rq: str):
+def check_parentheses(rq: str) -> bool:
+    """
+    Check the parentheses of a query.
+
+    :param rq: The query/request to check
+    :return: True if success
+    :raise SyntaxError: If there was a parentheses problem
+    """
     stack = []
     for char in rq:
         if char == '(':
             stack.append(char)
         elif char == ')':
             if not stack:
-                return False
+                raise SyntaxError("There was an error in your parentheses count")
             stack.pop()
     if stack:
         raise SyntaxError("There was an error in your parentheses count")
     return True
 
 
-def process_request(rq: str):
+def parse_arguments(args: str) -> list:
+    """
+    Parse the arguments. Separate the normal arguments from sub-queries
+
+    :param args: The arguments
+    :return: A list of the separated arguments
+    """
+
+    max_index = []
+    stack = []
+    comma_c = 0
+    base_i = 0
+    for i in range(len(args)):
+        if args[i] == ',':
+            comma_c += 1
+            if not stack:
+                base_i = i + 1
+        if args[i] == '(':
+            stack.append(args[i])
+        if args[i] == ')':
+            # We assume that the expression is balanced since we checked it earlier
+            stack.pop()
+            if not stack:
+                max_index.append((base_i, i + 1, comma_c))
+                base_i = i + 2
+
+    # TODO : Check the order and re-arrange the element
+    return [args[i:j] for (i, j, k) in max_index] + [args.split(',')[k] for k in range(comma_c) if k not in [c for (i, j, c) in max_index]]
+
+
+def create_query(query, args_l) -> Operator:
+    """
+    Instantiate the query to the right type
+
+    :param query: The query
+    :param args_l: The arguments
+    :return: An Operator object
+    """
+
+    # TODO : implement
+    pass
+
+
+def process_request(rq: str) -> int:
+    """
+    Recursive function that process the request.
+    Meaning that it ultimately converts the request in a "Query" object and runs a bunch of tests.
+
+    :param rq: The request to process
+    :return: The last letter index
+    """
     # Get the sub-query
     i = 0
     while rq[i] != '(':
         i += 1
-    query = rq[:i]
+    j = i
+    while j >= 0 and rq[j] != ',':
+        j -= 1
+    query = rq[j+1:i] if j <= i else rq[:i]
     j = i
     par_c = 0
     while rq[j] != ')' or par_c != -1:
@@ -49,26 +112,13 @@ def process_request(rq: str):
     args = rq[i+1:j]
 
     # Find sub-queries in arguments (that have to not be separated)
-    max_index = []
-    stack = []
-    base_i = 0
-    for i in range(len(args)):
-        if args[i] == '(':
-            stack.append(args[i])
-        if args[i] == ')':
-            # We assume that the expression is balanced since we checked it earlier
-            stack.pop()
-            if not stack:
-                max_index.append((base_i, i+1))
-                base_i = i + 2
-
-    args_l = [args[i:j] for (i,j) in max_index] + args[max_index.pop()[-1] + 1:].split(',') if len(max_index) != 0 else args.split(',')
+    args_l = parse_arguments(args)
     
-    q = enums_bdd.Query(query, args_l)
+    q = create_query(query, args_l)
     if is_constant(query):
-        print(f"Constant found ! : {q.query} || {q.arg_list}")
+        #print(f"Constant found ! : {q.query} || {q.arg_list}")
         return None
-    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q.query} || {q.arg_list}")
+    #print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q.query} || {q.arg_list}")
 
     return j
 
