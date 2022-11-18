@@ -13,4 +13,4 @@ class Difference(Operator):
         return f"Difference({self.Rel_A}, {self.Rel_B})"
 
     def __get_name__(self):
-        return self.names
+        return self.name
