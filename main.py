@@ -21,13 +21,19 @@ def check_parentheses(rq: str) -> bool:
     :raise SyntaxError: If there was a parentheses problem
     """
     stack = []
+    front_char = ['(', '[']
+    back_char = [')', ']']
     for char in rq:
-        if char == '(':
+        if char in front_char:
             stack.append(char)
-        elif char == ')':
+        elif char in back_char:
             if not stack:
                 raise SyntaxError("There was an error in your parentheses count")
-            stack.pop()
+            l_char = stack.pop()
+            if char == ']' and l_char != '[':
+                raise SyntaxError("There was an error in your parentheses count")
+            if char == ')' and l_char != '(':
+                raise SyntaxError("There was an error in your parentheses count")
     if stack:
         raise SyntaxError("There was an error in your parentheses count")
     return True
@@ -41,42 +47,34 @@ def parse_arguments(args: str) -> list:
     :return: A list of the separated arguments
     """
 
+    # Proj(Rel(a, b), c) || Proj(c, Rel(a, b), d) || Proj(c, Rel(a))
     max_index = []
     stack = []
     comma_c = 0
+    comma_i = 0
     base_i = 0
     for i in range(len(args)):
         if args[i] == ',':
             comma_c += 1
+            if stack:
+                comma_i += 1
             if not stack:
                 base_i = i + 1
-        if args[i] == '(':
+        if args[i] == '(' or args[i] == '[':
             stack.append(args[i])
-        if args[i] == ')':
+        if args[i] == ')' or args[i] == ']':
             # We assume that the expression is balanced since we checked it earlier
             stack.pop()
-            if not stack:
-                max_index.append((base_i, i + 1, comma_c))
+            if not stack and args[i] == ')':
+                max_index.append((base_i, i + 1, comma_c, comma_i))
                 base_i = i + 1
+                comma_i = 0
 
-    sub_queries = [create_query(args[i:j]) for (i,j,k) in max_index]
-    constants = [create_query(args.split(',')[k]) for k in range(comma_c) if k not in [c for (i, j, c) in max_index]]
+    sub_queries = [args[i:j] for (i, j, k, l) in max_index]
+    constants = [args.split(',')[k] for k in range(comma_c + 1) if (not any(k in a for a in [(a for a in range(c - l, c + 1)) for (i, j, c, l) in max_index]))]
 
     # TODO : Check the order and re-arrange the element
     return sub_queries + constants
-
-
-def create_query(query: str) -> Operator:
-    """
-    Instantiate the query to the right type
-
-    :param query: The query
-    :param args_l: The arguments
-    :return: An Operator object
-    """
-
-    # TODO : implement
-    pass
 
 
 def process_request(rq: str) -> int:
@@ -87,6 +85,9 @@ def process_request(rq: str) -> int:
     :param rq: The request to process
     :return: The last letter index
     """
+
+    # TODO : Recursion problem when typing 'Proj(Proj(Rel(a,b),b),Proj(c,Rel(a,b),d)'
+
     # Get the sub-query
     i = 0
     while rq[i] != '(':
@@ -111,8 +112,9 @@ def process_request(rq: str) -> int:
 
     # Find sub-queries in arguments (that have to not be separated)
     args_l = parse_arguments(args)
-    
-    q = create_query(query, args_l)
+
+
+
     if is_constant(query):
         #print(f"Constant found ! : {q.query} || {q.arg_list}")
         return None
