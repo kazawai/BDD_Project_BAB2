@@ -15,13 +15,15 @@ def get_request_content(rq: str):
 
 
 def check_parentheses(rq: str):
-    parentheses = 0
-    for i in range(len(rq)):
-        if rq[i] == '(':
-            parentheses += 1
-        elif rq[i] == ')':
-            parentheses -= 1
-    if parentheses != 0:
+    stack = []
+    for char in rq:
+        if char == '(':
+            stack.append(char)
+        elif char == ')':
+            if not stack:
+                return False
+            stack.pop()
+    if stack:
         raise SyntaxError("There was an error in your parentheses count")
     return True
 
@@ -45,7 +47,24 @@ def process_request(rq: str):
             par_c -= 1
 
     args = rq[i+1:j]
-    q = enums_bdd.Query(query, args.split(','))
+
+    # Find sub-queries in arguments (that have to not be separated)
+    max_index = []
+    stack = []
+    base_i = 0
+    for i in range(len(args)):
+        if args[i] == '(':
+            stack.append(args[i])
+        if args[i] == ')':
+            # We assume that the expression is balanced since we checked it earlier
+            stack.pop()
+            if not stack:
+                max_index.append((base_i, i+1))
+                base_i = i + 2
+
+    args_l = [args[i:j] for (i,j) in max_index] + args[max_index.pop()[-1] + 1:].split(',') if len(max_index) != 0 else args.split(',')
+    
+    q = enums_bdd.Query(query, args_l)
     if is_constant(query):
         print(f"Constant found ! : {q.query} || {q.arg_list}")
         return None
