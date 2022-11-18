@@ -6,13 +6,13 @@ class Operator:
     def __init__(self, attr_list):
         self.a_list = attr_list
 
-    def get_name(self):
+    def __get_name__(self):
         return ""
 
 
 def check_query(query: Operator) -> bool:
     # TODO : Check the arguments (number and form)
-    match query.get_name():
+    match query.__get_name__():
         case SPJRUDRequest.SELECT.value:
             return True
 

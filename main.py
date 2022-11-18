@@ -12,11 +12,6 @@ def is_constant(rq: str) -> bool:
     return Constants.has_value(rq)
 
 
-def get_request_content(rq: str):
-
-    pass
-
-
 def check_parentheses(rq: str) -> bool:
     """
     Check the parentheses of a query.
@@ -62,13 +57,16 @@ def parse_arguments(args: str) -> list:
             stack.pop()
             if not stack:
                 max_index.append((base_i, i + 1, comma_c))
-                base_i = i + 2
+                base_i = i + 1
+
+    sub_queries = [create_query(args[i:j]) for (i,j,k) in max_index]
+    constants = [create_query(args.split(',')[k]) for k in range(comma_c) if k not in [c for (i, j, c) in max_index]]
 
     # TODO : Check the order and re-arrange the element
-    return [args[i:j] for (i, j, k) in max_index] + [args.split(',')[k] for k in range(comma_c) if k not in [c for (i, j, c) in max_index]]
+    return sub_queries + constants
 
 
-def create_query(query, args_l) -> Operator:
+def create_query(query: str) -> Operator:
     """
     Instantiate the query to the right type
 
@@ -118,7 +116,7 @@ def process_request(rq: str) -> int:
     if is_constant(query):
         #print(f"Constant found ! : {q.query} || {q.arg_list}")
         return None
-    #print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q.query} || {q.arg_list}")
+    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {query} || {args_l}")
 
     return j
 

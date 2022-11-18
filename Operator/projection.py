@@ -5,13 +5,13 @@ class Projection(Operator):
 
     name = "Proj"
 
-    def __int__(self, col, rel):
-        super([col, rel])
+    def __init__(self, col, rel):
+        super().__init__([col, rel])
         self.column = col
         self.relation = rel
 
     def __str__(self):
         return f"Proj({self.column}, {self.relation})"
 
-    def get_name(self):
+    def __get_name__(self):
         return self.name

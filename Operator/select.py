@@ -5,13 +5,13 @@ class Select(Operator):
 
     name = "Select"
 
-    def __int__(self, op, rel):
-        super([op, rel])
+    def __init__(self, op, rel):
+        super().__init__([op, rel])
         self.op = op
         self.relation = rel
 
     def __str__(self):
         return f"Select({self.op}, {self.relation})"
 
-    def get_name(self):
+    def __get_name__(self):
         return self.name
