@@ -1,5 +1,5 @@
-from enums_bdd import Constants, SPJRUDRequest
 from Class.Operator import *
+from enums_bdd import Constants, SPJRUDRequest
 
 
 def is_constant(rq: str) -> bool:
@@ -163,7 +163,13 @@ if __name__ == '__main__':
         if request == "exit":
             break
 
-        check_parentheses(request)
-        process_request(request)
+        arg1 = Attribute("test1")
+        arg2 = Constant("test2")
+        attr = [["test"], ["test0"], ["test1"], ["test3"]]
+
+        query = ", ".join([" ".join([str(arg1), "AS", str(Attribute(arg2.name))]) if attr[i][0] == arg1.a_name else str(attr[i][0]) for i in range(len(attr))])
+        print(query)
+        #check_parentheses(request)
+        #process_request(request)
 
     print("Goodbye !")
