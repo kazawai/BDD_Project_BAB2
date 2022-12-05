@@ -1,4 +1,4 @@
-from SQL import *
+from Class.SQL import *
 
 
 class Operator:
@@ -69,6 +69,9 @@ class Select(SelfOperator):
         assert op in valid_operators
         # TODO : check if attr1 and attr2 are in the table (if attr2 is an Attribute)
 
+        # TODO : build the query
+        self.query = f"SELECT DISTINCT * FROM {table.db} WHERE {str(attr1)} {op} " + f"\"{str(attr2)}\"" if isinstance(attr2, Constant) else f"{str(attr2)}"
+
 
 class Projection(SelfOperator):
 
@@ -78,6 +81,9 @@ class Projection(SelfOperator):
         if any(not isinstance(attr, Attribute) for attr in attr_list):
             raise TypeError("All attributes must be of class 'Attribute'")
         # TODO : check if attributes in table
+
+        # TODO : build the query
+        self.query = "SELECT DISTINCT " + ", ".join(attr_list) + f" FROM {table.db}"
 
 
 class Rename(SelfOperator):
@@ -90,6 +96,13 @@ class Rename(SelfOperator):
         assert isinstance(arg2, Constant)
         # TODO : check if arg1 in the table and arg2 not already in the table
 
+        # Building the query
+        self.query = "SELECT DISTINCT "
+        # Creating the alias we want
+        self.query += ", ".join([" ".join([str(arg1), "AS", str(Attribute(arg2.name))]) if self.attr[i][0] == arg1.a_name else str(self.attr[i][0]) for i in range(len(self.attr))])
+
+        self.query += f" FROM {table.db}"
+
 
 class Join(MultiOperator):
 
@@ -98,6 +111,7 @@ class Join(MultiOperator):
 
         assert rel1.attr == rel2.attr
         # TODO : the query
+        self.query = f"SELECT DISTINCT FROM {rel1} JOIN {rel2}"
 
 
 class Union(MultiOperator):
@@ -107,4 +121,4 @@ class Union(MultiOperator):
 
         assert rel1.attr == rel2.attr
         # TODO : the query
-
+        self.query = f"SELECT DISTINCT * FROM {rel1} UNION SELECT DISTINCT * FROM {rel2}"
