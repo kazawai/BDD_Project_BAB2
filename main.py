@@ -1,5 +1,5 @@
 from enums_bdd import Constants, SPJRUDRequest
-from Operator.operator import Operator
+from Class.Operator import *
 
 
 def is_constant(rq: str) -> bool:
@@ -116,11 +116,40 @@ def process_request(rq: str) -> int:
 
 
     if is_constant(query):
-        #print(f"Constant found ! : {q.query} || {q.arg_list}")
+        print(f"Constant found ! : {query} || {args_l}")
         return None
     print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {query} || {args_l}")
 
     return j
+
+
+def create_obj(query: str, args: list) -> Operator:
+
+    a = Operator()
+
+    match query:
+        case SPJRUDRequest.SELECT.value:
+            a = Select(args[0], args[1])
+
+        case SPJRUDRequest.PROJECTION.value:
+            a = Projection(args[0], args[1])
+
+        case SPJRUDRequest.JOIN.value:
+            a = Join(args[0], args[1])
+
+        case SPJRUDRequest.RENAME.value:
+            a = Rename(args[0], args[1])
+
+        case SPJRUDRequest.UNION.value:
+            a = Union(args[0], args[1])
+
+        case Constants.ATTRIBUTE.value:
+            a = Attribute(args[0])
+
+        case Constants.CONSTANTS.value:
+            a = Constants(args[0])
+
+    return a
 
 
 if __name__ == '__main__':
