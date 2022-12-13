@@ -14,7 +14,8 @@ class SPJRUDRequest(Enum):
 
 
 class Constants(Enum):
-    ATTRIBUTE = "Rel"
+    ATTRIBUTE = ""
+    TABLE = "Rel"
     CONSTANTS = "Cst"
 
     @classmethod

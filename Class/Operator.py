@@ -8,23 +8,22 @@ class Operator:
     """
 
     attr = None
+    query = ""
 
     def format(self, query):
-        s = ""
         try:
             length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
         except ValueError:
             raise ValueError("Your query returned an empty table")
-        s += "".join(str(attr[0]).ljust(length) + "| " for attr in self.attr) + "\n"
-        s += "+-".join("-"*length for i in range(len(self.attr))) + "+\n"
-        for row in query:
-            s += "".join(str(el).ljust(length)+"| " for el in row) + "\n"
+        s = "".join(str(att[0]).ljust(length) + "| " for att in self.attr) + "\n" + "+-".join("-"*length for i in range(len(self.attr))) + "+\n" + \
+            "".join(["".join(str(el).ljust(length) + "| " for el in row) + "\n" for row in query])
         return s
+
+    def __str__(self):
+        return str(self.__class__)
 
 
 class SelfOperator(Operator):
-
-    query = ""
 
     def __init__(self, arg, table):
 
@@ -75,33 +74,50 @@ class Select(SelfOperator):
 
 class Projection(SelfOperator):
 
-    def __init__(self, attr_list, table: Table):
+    def __init__(self, attr_list: list, table: Table):
         super(Projection, self).__init__(attr_list, table)
+
+        self.attr_l = attr_list
 
         if any(not isinstance(attr, Attribute) for attr in attr_list):
             raise TypeError("All attributes must be of class 'Attribute'")
         # TODO : check if attributes in table
 
-        # TODO : build the query
-        self.query = "SELECT DISTINCT " + ", ".join(attr_list) + f" FROM {table.db}"
+        self.query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM {table.name}"
+
+    def format(self, query):
+        try:
+            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+        except ValueError:
+            raise ValueError("Your query returned an empty table")
+        s = "".join(str(att.get_name()).ljust(length) + "| " for att in self.attr_l) + "\n" + "+-".join("-" * length for i in range(len(self.attr_l))) + "+\n" + \
+            "".join(["".join(str(el).ljust(length) + "| " for el in row) + "\n" for row in query])
+        return s
 
 
 class Rename(SelfOperator):
 
-    def __init__(self, arg1: Attribute, arg2, table: Table):
+    def __init__(self, arg1: Attribute, arg2: Constant, table: Table):
         args = [arg1, arg2]
         super(Rename, self).__init__(args, table)
+
+        self.arg2 = arg2
 
         assert isinstance(arg1, Attribute)
         assert isinstance(arg2, Constant)
         # TODO : check if arg1 in the table and arg2 not already in the table
 
         # Building the query
-        self.query = "SELECT DISTINCT "
-        # Creating the alias we want
-        self.query += ", ".join([" ".join([str(arg1), "AS", str(Attribute(arg2.name))]) if self.attr[i][0] == arg1.a_name else str(self.attr[i][0]) for i in range(len(self.attr))])
+        self.query = f"SELECT {arg1.a_name} AS {arg2.name} FROM {table.name};"
 
-        self.query += f" FROM {table.db}"
+    def format(self, query):
+        try:
+            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+        except ValueError:
+            raise ValueError("Your query returned an empty table")
+        s = "".join(str(self.arg2.name).ljust(length) + "| ") + "\n" + "+-".join("-" * (length // 2)) + "+\n" + \
+            "".join(["".join(str(el).ljust(length) + "| " for el in row) + "\n" for row in query])
+        return s
 
 
 class Join(MultiOperator):
@@ -110,8 +126,17 @@ class Join(MultiOperator):
         super(Join, self).__init__(rel1, rel2)
 
         assert rel1.attr == rel2.attr
-        # TODO : the query
+
         self.query = f"SELECT DISTINCT FROM {rel1} JOIN {rel2}"
+
+    def format(self, query):
+        try:
+            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+        except ValueError:
+            raise ValueError("Your query returned an empty table")
+        s = "".join(str(self.arg2.name).ljust(length) + "| ") + "\n" + "+-".join("-" * (length // 2)) + "+\n" + \
+            "".join(["".join(str(el).ljust(length) + "| " for el in row) + "\n" for row in query])
+        return s
 
 
 class Union(MultiOperator):
@@ -120,5 +145,14 @@ class Union(MultiOperator):
         super(Union, self).__init__(rel1, rel2)
 
         assert rel1.attr == rel2.attr
-        # TODO : the query
+
         self.query = f"SELECT DISTINCT * FROM {rel1} UNION SELECT DISTINCT * FROM {rel2}"
+
+    def format(self, query):
+        try:
+            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+        except ValueError:
+            raise ValueError("Your query returned an empty table")
+        s = "".join(str(self.arg2.name).ljust(length) + "| ") + "\n" + "+-".join("-" * (length // 2)) + "+\n" + \
+            "".join(["".join(str(el).ljust(length) + "| " for el in row) + "\n" for row in query])
+        return s

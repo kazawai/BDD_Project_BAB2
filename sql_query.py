@@ -1,5 +1,6 @@
 import sqlite3 as sql
 import os
+from Class.Operator import *
 
 global cur
 
@@ -23,26 +24,42 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     if tables is None:
         table1 = "Cities"
         table2 = "Country"
-        tables = [table1, table2]
+        tables = [table2, table1]
 
     if tables_struct is None:
-        table_struct1 = """ Name TEXT PRIMARY KEY
-                        Country TEXT FOREIGN KEY REFERENCE Country
-                        Inhabitants INTEGER
+        table_struct1 = """ Name TEXT PRIMARY KEY,
+                        Country TEXT,
+                        Inhabitants INTEGER,
+                        FOREIGN KEY(Country) REFERENCES Country(Name)
                         """
-        table_struct2 = """ Name TEXT PRIMARY KEY
-                        Capital TEXT
-                        Inhabitants INTEGER
-                        Continent TEXT
+        table_struct2 = """ Name TEXT PRIMARY KEY,
+                        Capital TEXT,
+                        Inhabitants INTEGER,
+                        Continent TEXT,
                         Currency TEXT
                         """
-        tables_struct = [table_struct1, table_struct2]
+        tables_struct = [table_struct2, table_struct1]
 
     # We will assume that the table_struct is nicely formatted if given
     for i in range(len(tables)):
         cur.execute(f"CREATE TABLE {tables[i]} ({tables_struct[i]});")
 
+    cur.execute(f"INSERT INTO {table2} VALUES (\"USA\", \"Washington\", \"30000000\", \"North America\", \"USD\");")
+
     con.commit()
+    con.close()
+
+
+def run_query(name: str, query: Operator):
+    con = sql.connect(f"{name}.db")
+    cur = con.cursor()
+
+    print(f"\n\n{query.query}\n")
+
+    cur.execute(query.query)
+
+    print(query.format(cur.fetchall()))
+
     con.close()
 
 

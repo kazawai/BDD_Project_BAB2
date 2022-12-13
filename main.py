@@ -1,5 +1,9 @@
 from Class.Operator import *
 from enums_bdd import Constants, SPJRUDRequest
+from sql_query import *
+
+
+global db
 
 
 def is_constant(rq: str) -> bool:
@@ -73,11 +77,10 @@ def parse_arguments(args: str) -> list:
     sub_queries = [args[i:j] for (i, j, k, l) in max_index]
     constants = [args.split(',')[k] for k in range(comma_c + 1) if (not any(k in a for a in [(a for a in range(c - l, c + 1)) for (i, j, c, l) in max_index]))]
 
-    # TODO : Check the order and re-arrange the element
-    return sub_queries + constants
+    return constants + sub_queries
 
 
-def process_request(rq: str) -> int:
+def process_request(rq: str) -> Operator:
     """
     Recursive function that process the request.
     Meaning that it ultimately converts the request in a "Query" object and runs a bunch of tests.
@@ -86,68 +89,72 @@ def process_request(rq: str) -> int:
     :return: The last letter index
     """
 
-    # TODO : Recursion problem when typing 'Proj(Proj(Rel(a,b),b),Proj(c,Rel(a,b),d)'
-
     # Get the sub-query
     i = 0
-    while rq[i] != '(':
+    while i < len(rq) and rq[i] != '(':
         i += 1
+    if i == len(rq):
+        print(f"Constant found : {rq}")
+        return create_obj(rq)
     j = i
     while j >= 0 and rq[j] != ',':
         j -= 1
-    query = rq[j+1:i] if j <= i else rq[:i]
-    j = i
+    q = rq[j + 1:i] if j <= i else rq[:i]
+    j = i + 1
     par_c = 0
+
     while rq[j] != ')' or par_c != -1:
-        j += 1
         if rq[j] == '(':
             par_c += 1
-            k = process_request(rq[i + 1:])
-            if k is not None:
-                j = k + len(query)
         elif rq[j] == ')':
             par_c -= 1
+            if par_c == -1:
+                break
+        j += 1
 
     args = rq[i+1:j]
 
     # Find sub-queries in arguments (that have to not be separated)
     args_l = parse_arguments(args)
 
+    if is_constant(q):
+        print(f"Constant found ! : {q} || {args_l}")
+    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q} || {args_l}")
+
+    return create_obj(q, [process_request(arg) for arg in args_l] if not is_constant(q) else args_l)
 
 
-    if is_constant(query):
-        print(f"Constant found ! : {query} || {args_l}")
-        return None
-    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {query} || {args_l}")
+def create_obj(q: str, args: list = None) -> Operator:
 
-    return j
+    a = Operator
+    print(args)
 
-
-def create_obj(query: str, args: list) -> Operator:
-
-    a = Operator()
-
-    match query:
+    match q:
         case SPJRUDRequest.SELECT.value:
-            a = Select(args[0], args[1])
+            a = Select(args[0], args[1], args[2], args[3])
 
         case SPJRUDRequest.PROJECTION.value:
-            a = Projection(args[0], args[1])
+            a = Projection([arg for arg in args if isinstance(arg, Attribute)], args[-1])
 
         case SPJRUDRequest.JOIN.value:
             a = Join(args[0], args[1])
 
         case SPJRUDRequest.RENAME.value:
-            a = Rename(args[0], args[1])
+            a = Rename(args[0], args[1], args[2])
 
         case SPJRUDRequest.UNION.value:
             a = Union(args[0], args[1])
 
-        case Constants.ATTRIBUTE.value:
-            a = Attribute(args[0])
+        case Constants.TABLE.value:
+            a = Table(db, args[0])
 
         case Constants.CONSTANTS.value:
-            a = Constants(args[0])
+            a = Constant(args[0])
+
+        case _:
+            a = Attribute(q)
+
+    print(f"{q} |||| {a}")
 
     return a
 
@@ -157,19 +164,30 @@ if __name__ == '__main__':
     request = None
 
     while request != "exit":
-        print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
-        request = input("Request :\t")
+        print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
+
+        request = input("Database :\t")
+        print("\n")
 
         if request == "exit":
             break
 
-        arg1 = Attribute("test1")
-        arg2 = Constant("test2")
-        attr = [["test"], ["test0"], ["test1"], ["test3"]]
+        db = request
 
-        query = ", ".join([" ".join([str(arg1), "AS", str(Attribute(arg2.name))]) if attr[i][0] == arg1.a_name else str(attr[i][0]) for i in range(len(attr))])
-        print(query)
-        #check_parentheses(request)
-        #process_request(request)
+        create_db(db)
+
+        while request != "exit" and request != "db_change":
+            print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
+            request = input("Request :\t")
+            print("\n")
+
+            if request == "exit" or request == "db_change":
+                break
+
+            check_parentheses(request)
+            query = process_request(request)
+
+            run_query(db, query)
+
 
     print("Goodbye !")
