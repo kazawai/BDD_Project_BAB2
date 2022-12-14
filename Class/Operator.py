@@ -1,4 +1,3 @@
-from Class.SQL import *
 from sql_query import *
 
 
@@ -55,7 +54,7 @@ class SelfOperator(Operator):
 class MultiOperator(Operator):
 
     def __init__(self, rel1, rel2):
-        super().__init__()  
+        super().__init__()
 
         assert isinstance(rel1, Table) or isinstance(rel1, Operator)
         if isinstance(rel1, Operator):
