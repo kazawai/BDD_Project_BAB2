@@ -6,3 +6,4 @@ Start the project by typing in the terminal
 ```bash
 $ python3 main.py
 ```
+Then enjoy the magic ! :D
