@@ -52,7 +52,7 @@ class Table:
 
     def get_attr(self):
         attr = self.db.run(f"PRAGMA table_info({self.name})")
-        return [[element[1]] for element in attr]
+        return [element[1] for element in attr]
 
     def get_rows(self):
         return self.db.run(f"SELECT DISTINCT * FROM {self.name}")

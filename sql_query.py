@@ -3,8 +3,6 @@ import os
 import uuid
 from Class.Operator import *
 
-global cur
-
 
 class AlreadyExistingError(Exception):
 
@@ -25,7 +23,8 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     if tables is None:
         table1 = "Cities"
         table2 = "Country"
-        tables = [table2, table1]
+        table3 = "Country2"
+        tables = [table2, table1, table3]
 
     if tables_struct is None:
         table_struct1 = """ Name TEXT PRIMARY KEY,
@@ -39,13 +38,21 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
                         Continent TEXT,
                         Currency TEXT
                         """
-        tables_struct = [table_struct2, table_struct1]
+        table_struct3 = """ Name TEXT PRIMARY KEY,
+                                Capital TEXT,
+                                Inhabitants INTEGER,
+                                Continent TEXT,
+                                Currency TEXT
+                                """
+        tables_struct = [table_struct2, table_struct1, table_struct3]
 
     # We will assume that the table_struct is nicely formatted if given
     for i in range(len(tables)):
         cur.execute(f"CREATE TABLE {tables[i]} ({tables_struct[i]});")
 
     cur.execute(f"INSERT INTO {table2} VALUES (\"USA\", \"Washington\", \"30000000\", \"North America\", \"USD\");")
+    cur.execute(f"INSERT INTO {table3} VALUES (\"USA\", \"Washington\", \"30000000\", \"North America\", \"USD\");")
+    cur.execute(f"INSERT INTO {table3} VALUES (\"Belgium\", \"Bruxelles\", \"1\", \"Europe\", \"EUR\");")
 
     con.commit()
     con.close()
@@ -78,6 +85,7 @@ def delete_tables(db: Database):
             cur = con.cursor()
 
             cur.execute(f"DROP TABLE [{table}]")
+            temp_tables.remove(table)
         except Exception as e:
             print(f"Error : {e}")
         finally:
@@ -87,13 +95,14 @@ def delete_tables(db: Database):
 def create_table(db: Database, query: "Operator", table_id):
     con = sql.connect(f"{db.name}.db")
     try:
-        cur = con.cursor()
-
-        cur.execute(f"CREATE TABLE [{table_id}] AS {query.query}")
+        cur = con.execute(f"CREATE TABLE [{table_id}] AS {query.query}")
         con.commit()
+        cur = con.execute(f"PRAGMA table_info([{table_id}])")
+        desc = cur.fetchall()
         temp_tables.append(table_id)
+        return desc
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error in create : {e}")
     finally:
         con.close()
 
@@ -113,10 +122,10 @@ def run_query(db: Database, query: "Operator") -> Table:
 
         fetch = cur.fetchall()
         con.close()
-        create_table(db, query, str(table_id))
-        return Table(db.name, str(table_id), [[element] for row in fetch for element in row], fetch)
+        desc = create_table(db, query, str(table_id))
+        return Table(db.name, str(table_id), [d[1] for d in desc], fetch)
     except Exception as e:
-        print(f"Error : {e}")
+        print(f"Error in run : {e}")
     finally:
         con.close()
 
