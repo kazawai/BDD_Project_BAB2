@@ -47,16 +47,12 @@ class Table:
     def __init__(self, db: str, name: str, attr_list=None, row_list=None):
         self.db = Database(db)
         self.name = name
-        if attr_list is None or row_list is None:
-            self.attr = self.get_attr()
-            self.rows = self.get_rows()
-        else:
-            self.attr = attr_list
-            self.rows = row_list
+        self.attr = attr_list if attr_list is not None else self.get_attr()
+        self.row = row_list if row_list is not None else self.get_rows()
 
     def get_attr(self):
         attr = self.db.run(f"PRAGMA table_info({self.name})")
-        return [[element[i] for i in range(len(element))] for element in attr]
+        return [[element[1]] for element in attr]
 
     def get_rows(self):
         return self.db.run(f"SELECT DISTINCT * FROM {self.name}")

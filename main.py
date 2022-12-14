@@ -94,7 +94,6 @@ def process_request(rq: str) -> Operator:
     while i < len(rq) and rq[i] != '(':
         i += 1
     if i == len(rq):
-        print(f"Constant found : {rq}")
         return create_obj(rq)
     j = i
     while j >= 0 and rq[j] != ',':
@@ -117,17 +116,12 @@ def process_request(rq: str) -> Operator:
     # Find sub-queries in arguments (that have to not be separated)
     args_l = parse_arguments(args)
 
-    if is_constant(q):
-        print(f"Constant found ! : {q} || {args_l}")
-    print(f"There was not any sub-request to {rq}" if args is None else f"{rq} : {q} || {args_l}")
-
     return create_obj(q, [process_request(arg) for arg in args_l] if not is_constant(q) else args_l)
 
 
 def create_obj(q: str, args: list = None) -> Operator:
 
     a = Operator
-    print(args)
 
     match q:
         case SPJRUDRequest.SELECT.value:
@@ -155,8 +149,6 @@ def create_obj(q: str, args: list = None) -> Operator:
             if q in valid_operators:
                 return q
             a = Attribute(q)
-
-    print(f"{q} |||| {a}")
 
     return a
 
@@ -194,5 +186,7 @@ if __name__ == '__main__':
             query = process_request(request)
 
             query.run_query()
+
+            delete_tables(db)
 
     print("Goodbye !")

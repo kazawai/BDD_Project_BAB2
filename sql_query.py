@@ -1,5 +1,6 @@
 import sqlite3 as sql
 import os
+import uuid
 from Class.Operator import *
 
 global cur
@@ -52,12 +53,14 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
 
 query_list = []
 def commit_queries():
+    print(query_list)
     for queries in query_list:
         con = sql.connect(f"{queries[0].name}.db")
         try:
             cur = con.cursor()
 
-            cur.execute(queries[1])
+            cur.execute(queries[1].commit_query)
+            print(f"executed {queries[1].commit_query}")
             con.commit()
         except Exception as e:
             print(f"Error : {e}")
@@ -65,19 +68,53 @@ def commit_queries():
             con.close()
 
 
-def run_query(db: Database, query: str):
+temp_tables = []
+
+
+def delete_tables(db: Database):
+    for table in temp_tables:
+        con = sql.connect(f"{db}.db")
+        try:
+            cur = con.cursor()
+
+            cur.execute(f"DROP TABLE [{table}]")
+        except Exception as e:
+            print(f"Error : {e}")
+        finally:
+            con.close()
+
+
+def create_table(db: Database, query: "Operator", table_id):
     con = sql.connect(f"{db.name}.db")
     try:
         cur = con.cursor()
 
-        print(f"\n\n{query}\n")
+        cur.execute(f"CREATE TABLE [{table_id}] AS {query.query}")
+        con.commit()
+        temp_tables.append(table_id)
+    except Exception as e:
+        print(f"Error : {e}")
+    finally:
+        con.close()
 
-        cur.execute(query)
+
+def run_query(db: Database, query: "Operator") -> Table:
+    con = sql.connect(f"{db.name}.db")
+    try:
+        cur = con.cursor()
+
+        print(f"\n\n{query.query}\n")
+
+        cur.execute(query.query)
 
         query_list.append((db, query))
 
+        table_id = uuid.uuid4()
+
         fetch = cur.fetchall()
-        return fetch
+        con.close()
+        create_table(db, query, str(table_id))
+        return Table(db.name, str(table_id), [[element] for row in fetch for element in row], fetch)
     except Exception as e:
         print(f"Error : {e}")
     finally:
