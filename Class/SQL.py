@@ -4,7 +4,7 @@ class Attribute:
         self.a_name = a_name
 
     def __str__(self):
-        return str(self.a_name) + str(self.__class__)
+        return str(self.a_name)
 
     def __eq__(self, other: "Attribute"):
         if isinstance(other, Attribute):
@@ -31,7 +31,7 @@ class Constant:
         self.name = name
 
     def __str__(self):
-        return str(self.name) + str(self.__class__)
+        return str(self.name)
 
     def __eq__(self, other: "Constant"):
         if isinstance(other, Constant):
@@ -60,6 +60,9 @@ class Table:
 
     def get_rows(self):
         return self.db.run(f"SELECT DISTINCT * FROM {self.name}")
+
+    def __str__(self):
+        return self.name
 
 
 class Database:

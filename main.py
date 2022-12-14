@@ -152,6 +152,8 @@ def create_obj(q: str, args: list = None) -> Operator:
             a = Constant(args[0])
 
         case _:
+            if q in valid_operators:
+                return q
             a = Attribute(q)
 
     print(f"{q} |||| {a}")
@@ -184,10 +186,13 @@ if __name__ == '__main__':
             if request == "exit" or request == "db_change":
                 break
 
+            if request == "commit":
+                commit_queries()
+                continue
+
             check_parentheses(request)
             query = process_request(request)
 
-            run_query(db, query)
-
+            query.run_query()
 
     print("Goodbye !")

@@ -50,17 +50,38 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     con.close()
 
 
-def run_query(name: str, query: Operator):
-    con = sql.connect(f"{name}.db")
-    cur = con.cursor()
+query_list = []
+def commit_queries():
+    for queries in query_list:
+        con = sql.connect(f"{queries[0].name}.db")
+        try:
+            cur = con.cursor()
 
-    print(f"\n\n{query.query}\n")
+            cur.execute(queries[1])
+            con.commit()
+        except Exception as e:
+            print(f"Error : {e}")
+        finally:
+            con.close()
 
-    cur.execute(query.query)
 
-    print(query.format(cur.fetchall()))
+def run_query(db: Database, query: str):
+    con = sql.connect(f"{db.name}.db")
+    try:
+        cur = con.cursor()
 
-    con.close()
+        print(f"\n\n{query}\n")
+
+        cur.execute(query)
+
+        query_list.append((db, query))
+
+        fetch = cur.fetchall()
+        return fetch
+    except Exception as e:
+        print(f"Error : {e}")
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

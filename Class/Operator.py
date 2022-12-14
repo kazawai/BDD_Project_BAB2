@@ -1,4 +1,5 @@
 from Class.SQL import *
+from sql_query import run_query
 
 
 class Operator:
@@ -9,10 +10,12 @@ class Operator:
 
     attr = None
     query = ""
+    result = None
+    db = None
 
     def format(self, query):
         try:
-            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+            length = max(max(len(str(element)) for row in self.result for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
         except ValueError:
             raise ValueError("Your query returned an empty table")
         s = "".join(str(att[0]).ljust(length) + "| " for att in self.attr) + "\n" + "+-".join("-"*length for i in range(len(self.attr))) + "+\n" + \
@@ -21,6 +24,10 @@ class Operator:
 
     def __str__(self):
         return str(self.__class__)
+
+    def run_query(self):
+        self.result = run_query(self.db, self.query)
+        print(self.format(self.result))
 
 
 class SelfOperator(Operator):
@@ -51,7 +58,7 @@ class MultiOperator(Operator):
         self.name = f"({rel1}, {rel2})"
 
         self.attr = None
-        self.query = ""
+        self.query = None
 
 
 valid_operators = ["=", ">=", "<=", "<", ">", "!="]
@@ -69,7 +76,7 @@ class Select(SelfOperator):
         # TODO : check if attr1 and attr2 are in the table (if attr2 is an Attribute)
 
         # TODO : build the query
-        self.query = f"SELECT DISTINCT * FROM {table.db} WHERE {str(attr1)} {op} " + f"\"{str(attr2)}\"" if isinstance(attr2, Constant) else f"{str(attr2)}"
+        self.query = f"SELECT DISTINCT * FROM {str(table)} WHERE {str(attr1)} {op} " + f"\"{str(attr2)}\"" if isinstance(attr2, Constant) else f"{str(attr2)}"
 
 
 class Projection(SelfOperator):
@@ -112,7 +119,7 @@ class Rename(SelfOperator):
 
     def format(self, query):
         try:
-            length = max(max(len(str(element)) for row in query for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
+            length = max(max(len(str(element)) for row in self.result for element in row), max(len(str(attr[0])) for attr in self.attr)) + 2
         except ValueError:
             raise ValueError("Your query returned an empty table")
         s = "".join(str(self.arg2.name).ljust(length) + "| ") + "\n" + "+-".join("-" * (length // 2)) + "+\n" + \
@@ -127,7 +134,7 @@ class Join(MultiOperator):
 
         assert rel1.attr == rel2.attr
 
-        self.query = f"SELECT DISTINCT FROM {rel1} JOIN {rel2}"
+        self.query = f"SELECT DISTINCT FROM {str(rel1)} JOIN {str(rel2)}"
 
     def format(self, query):
         try:
