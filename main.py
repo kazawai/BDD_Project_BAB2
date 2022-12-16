@@ -1,19 +1,13 @@
 from Class.Operator import *
 from enums_bdd import Constants, SPJRUDRequest
 from sql_query import *
+from Class.Errors import *
+import traceback
+import os
+import readline
 
 
 global db
-
-
-def is_constant(rq: str) -> bool:
-    """
-    Check if the query "rq" is a constant or not.
-
-    :param rq: The query
-    :return: True if the query is a constant, False if not
-    """
-    return Constants.has_value(rq)
 
 
 def check_parentheses(rq: str) -> bool:
@@ -32,14 +26,14 @@ def check_parentheses(rq: str) -> bool:
             stack.append(char)
         elif char in back_char:
             if not stack:
-                raise SyntaxError("There was an error in your parentheses count")
+                raise SyntaxException("There was an error in your parentheses count : Too many closing brackets")
             l_char = stack.pop()
             if char == ']' and l_char != '[':
-                raise SyntaxError("There was an error in your parentheses count")
+                raise SyntaxException("There was an error in your parentheses count : Missing opening [")
             if char == ')' and l_char != '(':
-                raise SyntaxError("There was an error in your parentheses count")
+                raise SyntaxException("There was an error in your parentheses count : Missing opening (")
     if stack:
-        raise SyntaxError("There was an error in your parentheses count")
+        raise SyntaxException("There was an error in your parentheses count : Missing closing brackets")
     return True
 
 
@@ -82,7 +76,7 @@ def parse_arguments(args: str) -> list:
 
 def process_request(rq: str) -> Operator:
     """
-    Recursive function that process the request.
+    Recursive function that processes the request.
     Meaning that it ultimately converts the request in a "Query" object and runs a bunch of tests.
 
     :param rq: The request to process
@@ -99,6 +93,8 @@ def process_request(rq: str) -> Operator:
     while j >= 0 and rq[j] != ',':
         j -= 1
     q = rq[j + 1:i] if j <= i else rq[:i]
+    if not SPJRUDRequest.has_value(q) and not Constants.has_value(q):
+        raise SyntaxException(f"Not a valid argument {q}")
     j = i + 1
     par_c = 0
 
@@ -116,7 +112,7 @@ def process_request(rq: str) -> Operator:
     # Find sub-queries in arguments (that have to not be separated)
     args_l = parse_arguments(args)
 
-    return create_obj(q, [process_request(arg) for arg in args_l] if not is_constant(q) else args_l)
+    return create_obj(q, [process_request(arg) for arg in args_l] if not Constants.has_value(q) else args_l)
 
 
 def create_obj(q: str, args: list = None) -> Operator:
@@ -125,24 +121,36 @@ def create_obj(q: str, args: list = None) -> Operator:
 
     match q:
         case SPJRUDRequest.SELECT.value:
+            if len(args) > 4:
+                raise SyntaxException(f"{q} : Too many arguments, expected 4 got {len(args)}")
             a = Select(args[0], args[1], args[2], args[3])
 
         case SPJRUDRequest.PROJECTION.value:
             a = Projection([arg for arg in args if isinstance(arg, Attribute)], args[-1])
 
         case SPJRUDRequest.JOIN.value:
+            if len(args) > 2:
+                raise SyntaxException(f"{q} : Too many arguments, expected 2 got {len(args)}")
             a = Join(args[0], args[1])
 
         case SPJRUDRequest.RENAME.value:
+            if len(args) > 3:
+                raise SyntaxException(f"{q} : Too many arguments, expected 3 got {len(args)}")
             a = Rename(args[0], args[1], args[2])
 
         case SPJRUDRequest.UNION.value:
+            if len(args) > 2:
+                raise SyntaxException(f"{q} : Too many arguments, expected 2 got {len(args)}")
             a = Union(args[0], args[1])
 
         case Constants.TABLE.value:
+            if len(args) > 1:
+                raise SyntaxException(f"{q} : Too many arguments, expected 1 got {len(args)}")
             a = Table(db, args[0])
 
         case Constants.CONSTANTS.value:
+            if len(args) > 1:
+                raise SyntaxException(f"{q} : Too many arguments, expected 1 got {len(args)}")
             a = Constant(args[0])
 
         case _:
@@ -160,33 +168,38 @@ if __name__ == '__main__':
     while request != "exit":
         print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
 
-        request = input("Database :\t")
+        request = input("Database : ")
         print("\n")
 
         if request == "exit":
-            break
+            exit(0)
 
         db = request
 
         create_db(db)
 
         while request != "exit" and request != "db_change":
-            print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
-            request = input("Request :\t")
-            print("\n")
+            try:
+                print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
+                request = input("Request : ")
+                print("\n")
 
-            if request == "exit" or request == "db_change":
-                break
+                if request == "exit" or request == "db_change":
+                    break
 
-            if request == "commit":
-                commit_queries()
-                continue
+                if request == "commit":
+                    commit_queries()
+                    continue
 
-            check_parentheses(request)
-            query = process_request(request)
+                check_parentheses(request)
+                query = process_request(request)
 
-            query.run_query()
+                query.run_query()
 
-            delete_tables(db)
+                delete_tables(db)
+            except KeyboardInterrupt:
+                exit(0)
+            except SError as e:
+                print(f"\033[91m{str(e)}\033[0m")
 
     print("Goodbye !")

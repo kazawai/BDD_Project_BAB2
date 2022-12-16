@@ -4,15 +4,23 @@ import uuid
 from Class.Operator import *
 
 
-class AlreadyExistingError(Exception):
-
-    def __init__(self, s: str = ""):
-        super().__init__(s)
-
-
 def create_db(name: str, tables: list = None, tables_struct: list = None):
     if os.path.exists(f"{name}.db"):
-        raise AlreadyExistingError(f"The database \'{name}\' already exists")
+        c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n]")
+        if c == "y":
+            con = sql.connect(f"{name}.db")
+            cur = con.cursor()
+
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+            reply = cur.fetchall()
+
+            table_names = map(lambda tup: tup[0], reply)
+            for n in table_names:
+                cur.execute(f"DROP TABLE {n}")
+            con.commit()
+            con.close()
+        if c == "n":
+            return
 
     assert len(tables) == len(tables_struct) if tables is not None and tables_struct is not None else True
     assert tables == tables_struct if tables is None or tables_struct is None else True
@@ -55,7 +63,6 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     cur.execute(f"INSERT INTO {table3} VALUES (\"Belgium\", \"Bruxelles\", \"1\", \"Europe\", \"EUR\");")
 
     con.commit()
-    con.close()
 
 
 query_list = []
@@ -78,7 +85,7 @@ def commit_queries():
 temp_tables = []
 
 
-def delete_tables(db: Database):
+def delete_tables(db: str):
     for table in temp_tables:
         con = sql.connect(f"{db}.db")
         try:
@@ -112,7 +119,7 @@ def run_query(db: Database, query: "Operator") -> Table:
     try:
         cur = con.cursor()
 
-        print(f"\n\n{query.query}\n")
+        print(f"\n\nTranslated query : {query.query}\n")
 
         cur.execute(query.query)
 
@@ -123,7 +130,7 @@ def run_query(db: Database, query: "Operator") -> Table:
         fetch = cur.fetchall()
         con.close()
         desc = create_table(db, query, str(table_id))
-        return Table(db.name, str(table_id), [d[1] for d in desc], fetch)
+        return Table(db.name, str(table_id), [d[1] for d in desc], fetch, query.table)
     except Exception as e:
         print(f"Error in run : {e}")
     finally:

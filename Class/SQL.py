@@ -44,18 +44,19 @@ import sqlite3
 
 class Table:
 
-    def __init__(self, db: str, name: str, attr_list=None, row_list=None):
+    def __init__(self, db: str, name: str, attr_list=None, row_list=None, past_name=None):
         self.db = Database(db)
         self.name = name
         self.attr = attr_list if attr_list is not None else self.get_attr()
         self.row = row_list if row_list is not None else self.get_rows()
+        self.past_name = past_name
 
     def get_attr(self):
-        attr = self.db.run(f"PRAGMA table_info({self.name})")
+        attr = self.db.run(f"PRAGMA table_info([{self.name}])")
         return [element[1] for element in attr]
 
     def get_rows(self):
-        return self.db.run(f"SELECT DISTINCT * FROM {self.name}")
+        return self.db.run(f"SELECT DISTINCT * FROM [{self.name}]")
 
     def __str__(self):
         return self.name
