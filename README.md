@@ -145,6 +145,7 @@ The list of all available exceptions is :
 * **MissingExpressionException** : Used for when there's a missing expression in the query (for example a missing argument)
 * **TableNameException** : Used when the table name isn't in the database
 * **AttributeException** : Mainly used when a given attribute isn't in a given table
+* **WrongDatabaseException** : Used when the given database doesn't respect all the criteria
 
 Some example of errors :
 
@@ -183,4 +184,30 @@ Request : Select(Wrong,=,Name,Rel(Country2))
 
 AttributeException : Attribute Wrong not in table Country2's attributes.
 Country2's attributes are ['Name', 'Capital', 'Inhabitants', 'Continent', 'Currency']
+```
+
+```bash
+WrongDatabaseException : test.db should at least contain tables 'CC' and 'Cities' but doesn't.
+Database's tables : ['Cities', 'Country', 'Country2']
+```
+```bash
+Please enter your request below ----------- (Enter 'exit' to quit)
+
+Request : select
+
+
+AttributeException : select cannot be translated as an SQL query, expected one of the following :
+[Select, Proj, Rename, Join, Union, Diff]
+But got 'Attribute'
+```
+
+```bash
+Please enter your request below ----------- (Enter 'exit' to quit)
+
+Request : Diff(Rel(Cities),Rel(Country))
+
+
+AttributeException : Difference(Cities, Country) : Cities should have the same attributes as Country.
+Cities's attributes : ['Name', 'Country', 'Inhabitants']
+Country's attributes : ['Name', 'Capital', 'Inhabitants', 'Continent', 'Currency']
 ```

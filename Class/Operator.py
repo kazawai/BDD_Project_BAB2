@@ -135,11 +135,11 @@ class Select(SelfOperator):
                 raise AttributeException(f"Attribute {attr2} not in table {table.name}'s attributes.\n"
                                          + f"{table.name}'s attributes are {self.table.attr}")
 
-        self.query = f"SELECT * FROM [{str(self.table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
+        self.query = f"SELECT * FROM [{str(self.table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
 
-        self.printable_query = f"SELECT * FROM [{str(table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
+        self.printable_query = f"SELECT * FROM [{str(table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
 
-        self.commit_query = f"SELECT * FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
+        self.commit_query = f"SELECT * FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
 
 
 class Projection(SelfOperator):
@@ -157,11 +157,11 @@ class Projection(SelfOperator):
                 raise AttributeException(f"Attribute {attr} is not in the table {table.name}.\n"
                                          + f"{table.name}'s attributes are : {self.table.attr}")
 
-        self.query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{self.table.name}]"
+        self.query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{self.table.name}];"
 
-        self.printable_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{table.name}]"
+        self.printable_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{table.name}];"
 
-        self.commit_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}]"
+        self.commit_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}];"
 
 
 class Rename(SelfOperator):
@@ -207,3 +207,14 @@ class Union(MultiOperator):
 
         self.query = f"SELECT DISTINCT * FROM [{rel1}] UNION SELECT DISTINCT * FROM [{rel2}];"
 
+
+class Difference(MultiOperator):
+
+    def __init__(self, rel1, rel2):
+        super(Difference, self).__init__(rel1, rel2)
+
+        if not rel1.attr == rel2.attr:
+            raise AttributeException(f"{str(self)} : {str(rel1)} should have the same attributes as {str(rel2)}.\n" +
+                                     f"{str(rel1)}'s attributes : {rel1.attr}\n{str(rel2)}'s attributes : {rel2.attr}")
+
+        self.query = f"SELECT DISTINCT * FROM [{rel1}] MINUS SELECT DISTINCT * FROM [{rel2}];"
