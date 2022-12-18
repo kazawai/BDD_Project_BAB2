@@ -1,3 +1,4 @@
+import sqlite3
 import sqlite3 as sql
 import os
 import uuid
@@ -77,6 +78,25 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     con.commit()
 
 
+def commit_query(query: "Operator"):
+    con = sql.connect(f"{query.db.name}.db")
+    try:
+        cur = con.cursor()
+        cur.execute(query.query)
+        print(f"executed {query.printable_query}")
+        con.commit()
+
+        cur.execute(f"SELECT * FROM {query.table.name};")
+
+        fetch = cur.fetchall()
+        con.close()
+        return Table(query.db.name, query.table.name, query.table.attr, fetch, query.table)
+    except sqlite3.Error as e:
+        print(f"Error while commit : {e}")
+    finally:
+        con.close()
+
+
 query_list = []
 def commit_queries():
     for queries in query_list:
@@ -87,7 +107,7 @@ def commit_queries():
             cur.execute(queries[1].commit_query)
             print(f"executed {queries[1].commit_query}")
             con.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Error : {e}")
         finally:
             con.close()
@@ -104,7 +124,7 @@ def delete_tables(db: str):
 
             cur.execute(f"DROP TABLE [{table}]")
             temp_tables.remove(table)
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Error : {e}")
         finally:
             con.close()
@@ -119,7 +139,7 @@ def create_table(db: Database, query: "Operator", table_id):
         desc = cur.fetchall()
         temp_tables.append(table_id)
         return desc
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"Error in create : {e}")
     finally:
         con.close()
@@ -142,7 +162,7 @@ def run_query(db: Database, query: "Operator") -> Table:
         con.close()
         desc = create_table(db, query, str(table_id))
         return Table(db.name, str(table_id), [d[1] for d in desc], fetch, query.table)
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"Error in run : {e}")
     finally:
         con.close()

@@ -74,14 +74,16 @@ def parse_arguments(args: str) -> list:
     return constants + sub_queries
 
 
-def process_request(rq: str) -> Operator:
+def process_request(r: str) -> Operator:
     """
     Recursive function that processes the request.
     Meaning that it ultimately converts the request in a "Query" object and runs a bunch of tests.
 
-    :param rq: The request to process
+    :param r: The request to process
     :return: The last letter index
     """
+
+    rq = r.removeprefix(" ").removesuffix(" ")
 
     # Get the sub-query
     i = 0
@@ -112,7 +114,7 @@ def process_request(rq: str) -> Operator:
     # Find sub-queries in arguments (that have to not be separated)
     args_l = parse_arguments(args)
 
-    return create_obj(q, [process_request(arg) for arg in args_l] if not Constants.has_value(q) else args_l)
+    return create_obj(q, [process_request(str(arg).removeprefix(" ").removesuffix(" ")) for arg in args_l] if not Constants.has_value(q) else args_l)
 
 
 def create_obj(q: str, args: list = None) -> Operator:
@@ -143,6 +145,9 @@ def create_obj(q: str, args: list = None) -> Operator:
             elif len(args) < 3:
                 raise MissingExpressionException(f"{q} : Too little arguments, expected 3 got {len(args)}")
             a = Rename(args[0], args[1], args[2])
+
+        case SPJRUDRequest.INSERT.value:
+            a = Insert([arg for arg in args if isinstance(arg, Constant)], args[-1])
 
         case SPJRUDRequest.UNION.value:
             if len(args) > 2:
@@ -184,44 +189,49 @@ if __name__ == '__main__':
 
     request = None
     while request != "exit":
-        print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
+        try:
+            print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
 
-        request = input("Database : ")
-        print("\n")
+            request = input("Database : ")
+            print("\n")
 
-        if request == "exit":
-            print("Goodbye !")
-            exit(0)
-
-        db = request
-
-        create_db(db)
-
-        while request != "exit" and request != "db_change":
-            try:
-                print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
-                request = input("Request : ")
-                print("\n")
-
-                if request == "exit" or request == "db_change":
-                    break
-
-                if request == "commit":
-                    commit_queries()
-                    continue
-
-                check_parentheses(request)
-                query = process_request(request)
-
-                if isinstance(query, Operator): query.run_query()
-                else: raise AttributeException(f"{query} cannot be translated as an SQL query, expected one of the following :\n" +
-                                               f"[Select, Proj, Rename, Join, Union, Diff]\nBut got '{query.__class__.__name__}'")
-
-                delete_tables(db)
-            except KeyboardInterrupt:
-                exit(0)
-            except SError as e:
-                print(f"\033[91m{str(e)}\033[0m")
-            finally:
+            if request == "exit":
                 print("Goodbye !")
-                delete_tables(db)
+                exit(0)
+
+            db = request
+
+            create_db(db)
+
+            while request != "exit" and request != "db_change":
+                try:
+                    print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
+                    request = input("Request : ")
+                    print("\n")
+
+                    if request == "exit" or request == "db_change":
+                        break
+
+                    if request == "commit":
+                        commit_queries()
+                        continue
+
+                    check_parentheses(request)
+                    query = process_request(request)
+
+                    if isinstance(query, Operator): query.run_query()
+                    else: raise AttributeException(f"{query} cannot be translated as an SQL query, expected one of the following :\n" +
+                                                   f"[Select, Proj, Rename, Join, Union, Diff]\nBut got '{query.__class__.__name__}'")
+
+                    delete_tables(db)
+                except KeyboardInterrupt:
+                    exit(0)
+                except SError as e:
+                    print(f"\033[91m{str(e)}\033[0m")
+                finally:
+                    delete_tables(db)
+        except KeyboardInterrupt:
+            exit(0)
+        finally:
+            print("\nGoodbye !")
+

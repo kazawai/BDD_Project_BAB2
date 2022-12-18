@@ -101,7 +101,7 @@ class MultiOperator(Operator):
         self.query = None
 
     def __str__(self):
-        return self.name
+        return self.__class__.__name__
 
 
 # All the SPJRUD's valid operators and their SQL equals
@@ -186,6 +186,30 @@ class Rename(SelfOperator):
         self.printable_query = self.query = f"SELECT {base_args} FROM [{table.name}];"
 
         self.commit_query = f"ALTER TABLE [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] RENAME COLUMN {arg1.a_name} TO '{arg2.name}';"
+
+
+class Insert(SelfOperator):
+
+    def __init__(self, args: list, table):
+        super(Insert, self).__init__(args, table)
+
+        if not len(args) == len(table.attr):
+            raise SyntaxException(f"{str(self)} : To insert a new row, you have to provide a value for every column.\n" +
+                                  f"Table {table.name}'s attributes : {self.table.attr}")
+
+        values = ', '.join([("'" + arg.name + "'") for arg in args])
+
+        self.query = f"INSERT INTO {self.table.name} ({', '.join(self.table.attr)}) VALUES ({values});"
+        self.printable_query = f"INSERT INTO {table.name} ({', '.join(self.table.attr)}) VALUES ({values});"
+
+    def run_query(self):
+        try:
+            self.result = commit_query(self)
+        except sqlite3.OperationalError as e:
+            raise TableNameException(f"{str(self)} : {e}")
+        s = self.format(self.result.row)
+        print(s if s is not None else "")
+        return self.result
 
 
 class Join(MultiOperator):
