@@ -1,3 +1,5 @@
+import sqlite3
+
 from Class.SQL import *
 from sql_query import *
 from Class.Errors import *
@@ -16,6 +18,7 @@ class Operator:
         self.db = None
         self.commit_query = ""
         self.table = None
+        self.printable_query = ""
 
     def format(self, query):
         """
@@ -36,7 +39,10 @@ class Operator:
         return str(self.__class__.__name__)
 
     def run_query(self):
-        self.result = run_query(self.db, self)
+        try:
+            self.result = run_query(self.db, self)
+        except sqlite3.OperationalError as e:
+            raise TableNameException(f"{str(self)} : {e}")
         s = self.format(self.result.row)
         print(s if s is not None else "")
         return self.result
@@ -50,7 +56,8 @@ class SelfOperator(Operator):
     def __init__(self, arg, table):
         super().__init__()
 
-        assert isinstance(table, Table) or isinstance(table, Operator)
+        if not isinstance(table, Table) and not isinstance(table, Operator):
+            raise SyntaxException(f"{str(self)} : {str(table)} is not a valid Table or Sub-query")
         if isinstance(table, Operator):
             self.table = table.run_query()
         else:
@@ -61,7 +68,7 @@ class SelfOperator(Operator):
         self.arg = arg
 
     def __str__(self):
-        return self.name
+        return self.__class__.__name__
 
 
 class MultiOperator(Operator):
@@ -72,13 +79,15 @@ class MultiOperator(Operator):
     def __init__(self, rel1, rel2):
         super().__init__()
 
-        assert isinstance(rel1, Table) or isinstance(rel1, Operator)
+        if not isinstance(rel1, Table) and not isinstance(rel1, Operator):
+            raise SyntaxException(f"{str(self)} : {str(rel1)} is not a valid Table or Sub-query")
         if isinstance(rel1, Operator):
             self.rel1 = rel1.run_query()
         else:
             self.rel1 = rel1
 
-        assert isinstance(rel2, Table) or isinstance(rel2, Operator)
+        if not isinstance(rel2, Table) and not isinstance(rel2, Operator):
+            raise SyntaxException(f"{str(self)} : {str(rel2)} is not a valid Table or Sub-query")
         if isinstance(rel2, Operator):
             self.rel2 = rel2.run_query()
         else:
@@ -112,20 +121,23 @@ class Select(SelfOperator):
         attr = [attr1, op, attr2]
         super(Select, self).__init__(attr, table)
 
-        assert isinstance(attr2, Constant) or isinstance(attr2, Attribute)
+        if not isinstance(attr2, Constant) and not isinstance(attr2, Attribute):
+            raise SyntaxException(f"{str(self)} : {str(attr2)} is not a valid Constant or Attribute")
         if op not in valid_operators.keys():
             raise SyntaxException(f"{str(self)} : {op} is not a valid operator")
 
         # Check if the attributes are in the table
-        if attr1 not in table.attr:
+        if attr1.a_name not in self.table.attr:
             raise AttributeException(f"Attribute {attr1} not in table {table.name}'s attributes.\n"
-                                     + f"{table.name}'s attributes are {table.attr}")
+                                     + f"{table.name}'s attributes are {self.table.attr}")
         if isinstance(attr2, Attribute):
-            if attr2 not in table.attr:
+            if attr2.a_name not in self.table.attr:
                 raise AttributeException(f"Attribute {attr2} not in table {table.name}'s attributes.\n"
-                                         + f"{table.name}'s attributes are {table.attr}")
+                                         + f"{table.name}'s attributes are {self.table.attr}")
 
         self.query = f"SELECT * FROM [{str(self.table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
+
+        self.printable_query = f"SELECT * FROM [{str(table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
 
         self.commit_query = f"SELECT * FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}")
 
@@ -141,11 +153,13 @@ class Projection(SelfOperator):
             raise TypeError(f"All attributes must be of class {Attribute.__class__}")
         # Check if all the attributes are in the table
         for attr in attr_list:
-            if attr not in table.attr:
+            if str(attr) not in self.table.attr:
                 raise AttributeException(f"Attribute {attr} is not in the table {table.name}.\n"
-                                         + f"{table.name}'s attributes are : {table.attr}")
+                                         + f"{table.name}'s attributes are : {self.table.attr}")
 
         self.query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{self.table.name}]"
+
+        self.printable_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{table.name}]"
 
         self.commit_query = "SELECT DISTINCT " + ", ".join([att.get_name() for att in attr_list]) + f" FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}]"
 
@@ -157,19 +171,21 @@ class Rename(SelfOperator):
         super(Rename, self).__init__(args, table)
 
         # Check if the first attribute is in the table
-        if arg1.a_name not in table.attr:
+        if arg1.a_name not in self.table.attr:
             raise AttributeException(f"Attribute {arg1.a_name} not in the table's {table.name} attribute.\n" +
-                                     f"{table.name}'s attributes are {table.attr}")
+                                     f"{table.name}'s attributes are {self.table.attr}")
         # Check if the new name isn't already in the table
-        if arg2.name in table.attr:
+        if arg2.name in self.table.attr:
             raise AttributeException(f"Attribute {arg2.name} already in table's {table.name} attributes.\n" +
-                                     f"{table.name}'s attributes are {table.attr}")
+                                     f"{table.name}'s attributes are {self.table.attr}")
 
         # Building the query
-        base_args = ", ".join(list(map(lambda x: x.replace(arg1.a_name, f"{arg1.a_name} AS {arg2.name}"), [att for att in self.table.get_attr()])))
+        base_args = ", ".join(list(map(lambda x: x.replace(arg1.a_name, f"{arg1.a_name} AS '{arg2.name}'"), [att for att in self.table.get_attr()])))
         self.query = f"SELECT {base_args} FROM [{self.table.name}];"
 
-        self.commit_query = f"ALTER TABLE [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] RENAME COLUMN {arg1.a_name} TO {arg2.name};"
+        self.printable_query = self.query = f"SELECT {base_args} FROM [{table.name}];"
+
+        self.commit_query = f"ALTER TABLE [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] RENAME COLUMN {arg1.a_name} TO '{arg2.name}';"
 
 
 class Join(MultiOperator):

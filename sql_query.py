@@ -6,7 +6,7 @@ from Class.Operator import *
 
 def create_db(name: str, tables: list = None, tables_struct: list = None):
     if os.path.exists(f"{name}.db"):
-        c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n]")
+        c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n] : ")
         if c == "y":
             con = sql.connect(f"{name}.db")
             cur = con.cursor()
@@ -67,7 +67,6 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
 
 query_list = []
 def commit_queries():
-    print(query_list)
     for queries in query_list:
         con = sql.connect(f"{queries[0].name}.db")
         try:
@@ -119,7 +118,7 @@ def run_query(db: Database, query: "Operator") -> Table:
     try:
         cur = con.cursor()
 
-        print(f"\n\nTranslated query : {query.query}\n")
+        print(f"\n\nTranslated query : {query.printable_query if query.printable_query != '' else query.query}\n")
 
         cur.execute(query.query)
 

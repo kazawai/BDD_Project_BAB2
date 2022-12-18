@@ -123,6 +123,8 @@ def create_obj(q: str, args: list = None) -> Operator:
         case SPJRUDRequest.SELECT.value:
             if len(args) > 4:
                 raise SyntaxException(f"{q} : Too many arguments, expected 4 got {len(args)}")
+            elif len(args) < 4:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 4 got {len(args)}")
             a = Select(args[0], args[1], args[2], args[3])
 
         case SPJRUDRequest.PROJECTION.value:
@@ -131,26 +133,36 @@ def create_obj(q: str, args: list = None) -> Operator:
         case SPJRUDRequest.JOIN.value:
             if len(args) > 2:
                 raise SyntaxException(f"{q} : Too many arguments, expected 2 got {len(args)}")
+            elif len(args) < 2:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 2 got {len(args)}")
             a = Join(args[0], args[1])
 
         case SPJRUDRequest.RENAME.value:
             if len(args) > 3:
                 raise SyntaxException(f"{q} : Too many arguments, expected 3 got {len(args)}")
+            elif len(args) < 3:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 3 got {len(args)}")
             a = Rename(args[0], args[1], args[2])
 
         case SPJRUDRequest.UNION.value:
             if len(args) > 2:
                 raise SyntaxException(f"{q} : Too many arguments, expected 2 got {len(args)}")
+            elif len(args) < 2:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 2 got {len(args)}")
             a = Union(args[0], args[1])
 
         case Constants.TABLE.value:
             if len(args) > 1:
                 raise SyntaxException(f"{q} : Too many arguments, expected 1 got {len(args)}")
+            elif len(args) < 1:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 1 got {len(args)}")
             a = Table(db, args[0])
 
         case Constants.CONSTANTS.value:
             if len(args) > 1:
                 raise SyntaxException(f"{q} : Too many arguments, expected 1 got {len(args)}")
+            elif len(args) < 1:
+                raise MissingExpressionException(f"{q} : Too little arguments, expected 1 got {len(args)}")
             a = Constant(args[0])
 
         case _:
@@ -164,42 +176,42 @@ def create_obj(q: str, args: list = None) -> Operator:
 if __name__ == '__main__':
 
     request = None
+    try:
+        while request != "exit":
+            print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
 
-    while request != "exit":
-        print("Enter the name of the database you wish to use : ----------- (Enter 'exit' to quit)\n")
+            request = input("Database : ")
+            print("\n")
 
-        request = input("Database : ")
-        print("\n")
-
-        if request == "exit":
-            exit(0)
-
-        db = request
-
-        create_db(db)
-
-        while request != "exit" and request != "db_change":
-            try:
-                print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
-                request = input("Request : ")
-                print("\n")
-
-                if request == "exit" or request == "db_change":
-                    break
-
-                if request == "commit":
-                    commit_queries()
-                    continue
-
-                check_parentheses(request)
-                query = process_request(request)
-
-                query.run_query()
-
-                delete_tables(db)
-            except KeyboardInterrupt:
+            if request == "exit":
                 exit(0)
-            except SError as e:
-                print(f"\033[91m{str(e)}\033[0m")
 
-    print("Goodbye !")
+            db = request
+
+            create_db(db)
+
+            while request != "exit" and request != "db_change":
+                    print("Please enter your request below ----------- (Enter 'exit' to quit)\n")
+                    request = input("Request : ")
+                    print("\n")
+
+                    if request == "exit" or request == "db_change":
+                        break
+
+                    if request == "commit":
+                        commit_queries()
+                        continue
+
+                    check_parentheses(request)
+                    query = process_request(request)
+
+                    query.run_query()
+
+                    delete_tables(db)
+    except KeyboardInterrupt:
+        exit(0)
+    except SError as e:
+        print(f"\033[91m{str(e)}\033[0m")
+    finally:
+        print("Goodbye !")
+        delete_tables(db)

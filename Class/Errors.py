@@ -22,11 +22,6 @@ class TableNameException(SError):
         super().__init__(self.__class__.__name__, description)
 
 
-class WrongDataBaseException(SError):
-    def __init__(self, description: str = None):
-        super().__init__(self.__class__.__name__, description)
-
-
 class AttributeException(SError):
     def __init__(self, description: str = None):
         super().__init__(self.__class__.__name__, description)

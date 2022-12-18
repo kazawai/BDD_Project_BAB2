@@ -1,3 +1,5 @@
+from Class.Errors import TableNameException
+
 class Attribute:
 
     def __init__(self, a_name: str):
@@ -68,9 +70,17 @@ class Database:
         self.name = name
         self.connection = sqlite3.connect(f"{name}.db")
         self.cur = self.connection.cursor()
+        self.tables = self.get_tables()
+
+    def get_tables(self):
+        query = "SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%';"
+        return [table[0] for table in self.run(query)]
 
     def run(self, query: str):
-        return self.cur.execute(query).fetchall()
+        try:
+            return self.cur.execute(query).fetchall()
+        except sqlite3.OperationalError as e:
+            raise TableNameException(f"{self.name}.db : {e}")
 
     def close(self):
         return self.connection.close()
