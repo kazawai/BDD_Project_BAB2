@@ -2,24 +2,29 @@ import sqlite3 as sql
 import os
 import uuid
 from Class.Operator import *
+from Class.SQL import *
+from Class.Errors import *
 
 
 def create_db(name: str, tables: list = None, tables_struct: list = None):
     if os.path.exists(f"{name}.db"):
         c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n] : ")
+        con = sql.connect(f"{name}.db")
+        cur = con.cursor()
+
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+        reply = cur.fetchall()
+
         if c == "y":
-            con = sql.connect(f"{name}.db")
-            cur = con.cursor()
-
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
-            reply = cur.fetchall()
-
             table_names = map(lambda tup: tup[0], reply)
             for n in table_names:
                 cur.execute(f"DROP TABLE {n}")
             con.commit()
             con.close()
+
         if c == "n":
+            if any(['CC' not in [table[0] for table in reply], 'Cities' not in [table[0] for table in reply]]):
+                raise WrongDatabaseException(f"{name}.db should at least contain tables 'CC' and 'Cities' but doesn't.\nDatabase's tables{[table[0] for table in reply]}")
             return
 
     assert len(tables) == len(tables_struct) if tables is not None and tables_struct is not None else True
@@ -32,7 +37,8 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
         table1 = "Cities"
         table2 = "Country"
         table3 = "Country2"
-        tables = [table2, table1, table3]
+        table4 = "CC"
+        tables = [table2, table1, table3, table4]
 
     if tables_struct is None:
         table_struct1 = """ Name TEXT PRIMARY KEY,
@@ -52,7 +58,13 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
                                 Continent TEXT,
                                 Currency TEXT
                                 """
-        tables_struct = [table_struct2, table_struct1, table_struct3]
+        table_struct4 = """ Name TEXT PRIMARY KEY,
+                                        Capital TEXT,
+                                        Inhabitants INTEGER,
+                                        Continent TEXT,
+                                        Currency TEXT
+                                        """
+        tables_struct = [table_struct2, table_struct1, table_struct3, table_struct4]
 
     # We will assume that the table_struct is nicely formatted if given
     for i in range(len(tables)):
