@@ -25,9 +25,10 @@ If ``{input}.db`` already exists, you will be presented with this
 ```bash
 The database {input}.db already exists, would you like to reset it to the predefined values ? [y/n] : 
 ```
-Enter 'n' if you want to keep the values as they were initially.
+Enter 'n' if you want to keep the values as they were initially. However, a test will be run on the database
+to assert that at least the tables `CC`and `Cities` are present.
 
-If the database does not exist or that you press 'y', the database will have 3 tables looking like this :
+If the database does not exist or that you press 'y', the database will have 4 tables looking like this :
 
 Country :
 
@@ -47,6 +48,12 @@ Cities :
 | Name    | Country | Inhabitants |
 |---------|---------|-------------|
 ||||
+
+CC :
+
+| Name    | Capital    | Inhabitants | Continent | Currency |
+|---------|------------|-------------|-----------|----------|
+||||||
 
 Once the database chosen, you will be presented with the opportunity to enter your SPJRUD request :
 ```bash
@@ -95,7 +102,14 @@ This particular query would output this :
 **Note that to represent a constant and a table of the database, the notation Cst(Value) and Rel(Name) are used.
 The query will not work if the conventions listed above aren't respected.**
 
-*Also note that the program is case-sensitive and doesn't work if any spacing are put between anything in the query.*
+*Also note that the program is case-sensitive.*
+
+You can add spaces for readability in your request if wanted. A sample request with spaces would look like this :
+```bash
+Please enter your request below ----------- (Enter 'exit' to quit)
+
+$ Request : Select(Name, =, Cst(USA), Rel(Country))
+```
 
 ### Useful things to know
 
@@ -135,6 +149,26 @@ We get this output :
 | Belgium | Bruxelles          | 1           | Europe        | EUR      |
 
 As you can see, the column `Capital` was successfully renamed to `This is my capital`
+
+
+You can also `Insert` new rows in tables. For example, if we want to add a row in the table `Cities`, we would write :
+```bash
+Please enter your request below ----------- (Enter 'exit' to quit)
+
+$ Request : Insert(Cst(Test), Cst(Test1), Cst(Test2), Rel(Cities))
+```
+The output would be :
+
+```bash
+executed INSERT INTO Cities (Name, Country, Inhabitants) VALUES ('Test', 'Test1', 'Test2');
+Name            | Country         | Inhabitants     | 
+----------------+-----------------+-----------------+
+Test            | Test1           | Test2           | 
+```
+
+As you can see, the row was correctly inserted.
+
+**Note that the row will be inserted in the specified table and directly committed, no need to enter `commit` after.**
 
 ### Exceptions
 
@@ -211,3 +245,43 @@ AttributeException : Difference(Cities, Country) : Cities should have the same a
 Cities's attributes : ['Name', 'Country', 'Inhabitants']
 Country's attributes : ['Name', 'Capital', 'Inhabitants', 'Continent', 'Currency']
 ```
+
+#### What could raise such exceptions
+
+Here is a list of what could raise the above exceptions for each operator :
+* `SelfOperator` : if the `table` given isn't either a `Table` or a sub-query you would get an exception of the sort :
+```bash
+SyntaxException : {SelfOperator} : {table} is not a valid Table or Sub-query 
+```
+* `MultiOperator` : if the `rel1` or `rel2` given aren't either a `Table` or a sub-query. An exception of the sort would be generated :
+```bash
+SyntaxException : {MultiOperator} : {rel1} is not a valid Table or Sub-query
+```
+* `Select`
+  * If `attr1` is not an attribute of `table`, you'd get an exception of the sort :
+`
+AttributeException : Attribute {attr1} not in table {table}'s attributes.
+{table}'s attributes are ['Name', 'Country', 'Inhabitants'] 
+`
+  * If `attr2` is not a `Constant` or an `Attribute` of the table, you'd get :
+`
+SyntaxException : Select : {attr2} is not a valid Constant or Attribute
+`
+  * If `op` isn't a valid operator
+
+* `Proj`
+  * If there's at least one attribute of `attr_list` that isn't an `Attribute`
+  * If there's at least of attribute of `attr_list` that isn't in the table
+
+* `Rename`
+  * If `arg1` isn't in the `table`
+  * If `arg2` is already in the `table`
+
+* `Insert`
+  * If the length of `args` isn't the same as the number of attributes of the `table`
+
+* `Union`
+  * If the attributes of `rel1` aren't the same as those of `rel2`
+
+* `Diff`
+  * If the attributes of `rel1` aren't the same as those of `rel2`

@@ -8,6 +8,7 @@ class SPJRUDRequest(Enum):
     RENAME = "Rename"
     UNION = "Union"
     DIFFERENCE = "Diff"
+    INSERT = "Insert"
 
     @classmethod
     def has_value(cls, value):
