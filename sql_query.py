@@ -7,8 +7,8 @@ from Class.SQL import *
 from Class.Errors import *
 
 
-def create_db(name: str, tables: list = None, tables_struct: list = None):
-    if os.path.exists(f"{name}.db"):
+def create_db(name: str, tables: list = None, tables_struct: list = None, test: bool = False):
+    if os.path.exists(f"{name}.db") and not test:
         c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n] : ")
         con = sql.connect(f"{name}.db")
         cur = con.cursor()
@@ -71,9 +71,14 @@ def create_db(name: str, tables: list = None, tables_struct: list = None):
     for i in range(len(tables)):
         cur.execute(f"CREATE TABLE {tables[i]} ({tables_struct[i]});")
 
+    cur.execute(f"INSERT INTO {table1} VALUES (\"Brussels\", \"Belgium\", \"1\");")
+    cur.execute(f"INSERT INTO {table1} VALUES (\"New-York\", \"USA\", \"5\");")
     cur.execute(f"INSERT INTO {table2} VALUES (\"USA\", \"Washington\", \"30000000\", \"North America\", \"USD\");")
+    cur.execute(f"INSERT INTO {table2} VALUES (\"France\", \"Paris\", \"9\", \"Europe\", \"EUR\");")
     cur.execute(f"INSERT INTO {table3} VALUES (\"USA\", \"Washington\", \"30000000\", \"North America\", \"USD\");")
-    cur.execute(f"INSERT INTO {table3} VALUES (\"Belgium\", \"Bruxelles\", \"1\", \"Europe\", \"EUR\");")
+    cur.execute(f"INSERT INTO {table2} VALUES (\"Belgium\", \"Brussels\", \"1\", \"Europe\", \"EUR\");")
+    cur.execute(f"INSERT INTO {table3} VALUES (\"France\", \"Paris\", \"-91\", \"Europe\", \"EUR\");")
+    cur.execute(f"INSERT INTO {table3} VALUES (\"DbLand\", \"Rablgebra\", \"35\", \"Heaven\", \"DBC\");")
 
     con.commit()
 

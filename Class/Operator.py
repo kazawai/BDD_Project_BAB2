@@ -242,3 +242,13 @@ class Difference(MultiOperator):
                                      f"{str(rel1)}'s attributes : {rel1.attr}\n{str(rel2)}'s attributes : {rel2.attr}")
 
         self.query = f"SELECT DISTINCT * FROM [{rel1}] MINUS SELECT DISTINCT * FROM [{rel2}];"
+
+
+class Showtables(Operator):
+
+    def __init__(self, db: Database):
+        self.db = db
+        self.table = db.tables
+
+    def run_query(self):
+        print(f"{self.db.name}'s tables : {self.table}")

@@ -9,6 +9,7 @@ class SPJRUDRequest(Enum):
     UNION = "Union"
     DIFFERENCE = "Diff"
     INSERT = "Insert"
+    SHOWTABLES = "showtables"
 
     @classmethod
     def has_value(cls, value):
