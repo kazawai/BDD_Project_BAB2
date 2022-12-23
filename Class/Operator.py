@@ -121,9 +121,12 @@ class Select(SelfOperator):
         attr = [attr1, op, attr2]
         super(Select, self).__init__(attr, table)
 
+        if not isinstance(attr1, Attribute):
+            raise SyntaxException(f"{str(self)} : {str(attr1)} is not a valid Attribute")
+
         if not isinstance(attr2, Constant) and not isinstance(attr2, Attribute):
             raise SyntaxException(f"{str(self)} : {str(attr2)} is not a valid Constant or Attribute")
-        if op not in valid_operators.keys():
+        if not isinstance(op, str) or op not in valid_operators.keys():
             raise SyntaxException(f"{str(self)} : {op} is not a valid operator")
 
         # Check if the attributes are in the table
@@ -135,11 +138,11 @@ class Select(SelfOperator):
                 raise AttributeException(f"Attribute {attr2} not in table {table.name}'s attributes.\n"
                                          + f"{table.name}'s attributes are {self.table.attr}")
 
-        self.query = f"SELECT * FROM [{str(self.table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
+        self.query = f"SELECT * FROM [{str(self.table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{str(attr2)}") + ";"
 
-        self.printable_query = f"SELECT * FROM [{str(table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
+        self.printable_query = f"SELECT * FROM [{str(table.name)}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{str(attr2)}") + ";"
 
-        self.commit_query = f"SELECT * FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{attr2.a_name}") + ";"
+        self.commit_query = f"SELECT * FROM [{str(self.table.past_name) if self.table.past_name is not None else self.table.name}] WHERE {attr1.a_name} {valid_operators.get(op)} " + (f"\"{attr2.name}\"" if isinstance(attr2, Constant) else f"{str(attr2)}") + ";"
 
 
 class Projection(SelfOperator):
@@ -169,6 +172,12 @@ class Rename(SelfOperator):
     def __init__(self, arg1: Attribute, arg2: Constant, table):
         args = [arg1, arg2]
         super(Rename, self).__init__(args, table)
+
+        if not isinstance(arg1, Attribute):
+            raise SyntaxException(f"{str(self)} : {str(arg1)} is not a valid Attribute")
+
+        if not isinstance(arg2, Constant):
+            raise SyntaxException(f"{str(self)} : {str(arg2)} is not a valid Constant\n A constant must be built like this : Cst(Value)")
 
         # Check if the first attribute is in the table
         if arg1.a_name not in self.table.attr:
@@ -242,3 +251,13 @@ class Difference(MultiOperator):
                                      f"{str(rel1)}'s attributes : {rel1.attr}\n{str(rel2)}'s attributes : {rel2.attr}")
 
         self.query = f"SELECT DISTINCT * FROM [{rel1}] MINUS SELECT DISTINCT * FROM [{rel2}];"
+
+
+class Showtables(Operator):
+
+    def __init__(self, db: Database):
+        self.db = db
+        self.table = db.tables
+
+    def run_query(self):
+        print(f"{self.db.name}'s tables : {self.table}")

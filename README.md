@@ -285,3 +285,11 @@ SyntaxException : Select : {attr2} is not a valid Constant or Attribute
 
 * `Diff`
   * If the attributes of `rel1` aren't the same as those of `rel2`
+
+### Unit tests
+There is a series of unit tests available in the `RequestsTest.py` file.
+
+You can run them all by putting the following command in your terminal : 
+```bash
+python3 RequestsTest.py
+```

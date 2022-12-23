@@ -16,7 +16,7 @@ def check_parentheses(rq: str) -> bool:
 
     :param rq: The query/request to check
     :return: True if success
-    :raise SyntaxError: If there was a parentheses problem
+    :raise SyntaxException: If there was a parentheses problem
     """
     stack = []
     front_char = ['(', '[']
@@ -149,6 +149,9 @@ def create_obj(q: str, args: list = None) -> Operator:
         case SPJRUDRequest.INSERT.value:
             a = Insert([arg for arg in args if isinstance(arg, Constant)], args[-1])
 
+        case SPJRUDRequest.SHOWTABLES.value:
+            a = Showtables(Database(db))
+
         case SPJRUDRequest.UNION.value:
             if len(args) > 2:
                 raise SyntaxException(f"{q} : Too many arguments, expected 2 got {len(args)}")
@@ -221,7 +224,7 @@ if __name__ == '__main__':
 
                     if isinstance(query, Operator): query.run_query()
                     else: raise AttributeException(f"{query} cannot be translated as an SQL query, expected one of the following :\n" +
-                                                   f"[Select, Proj, Rename, Join, Union, Diff]\nBut got '{query.__class__.__name__}'")
+                                                   f"[Select, Proj, Rename, Join, Union, Diff, Insert, showtables, commit]\nBut got '{query.__class__.__name__}'")
 
                     delete_tables(db)
                 except KeyboardInterrupt:
