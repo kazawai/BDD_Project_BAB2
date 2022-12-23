@@ -8,7 +8,8 @@ from Class.Errors import *
 
 
 def create_db(name: str, tables: list = None, tables_struct: list = None, test: bool = False):
-    if os.path.exists(f"{name}.db") and not test:
+    if os.path.exists(f"{name}.db"):
+        if test: return
         c = input(f"The database {name}.db already exists, would you like to reset it to the predefined values ? [y/n] : ")
         con = sql.connect(f"{name}.db")
         cur = con.cursor()
